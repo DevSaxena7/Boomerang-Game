@@ -135,7 +135,7 @@ function draw() {
         wasted.play();
       }, 500);
       health = 0;
-      stage = 2;
+      stage = 4;
     }
 
     if (health < 0.2 || dying) {
