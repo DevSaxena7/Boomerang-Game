@@ -1,7 +1,9 @@
 
 let axe, char, enemy, game_over, back_ground, enemyArmored, lava, space, enemyWinged;
 
+// Class to cover the different types of enemies throughout the levels
 class Enemy {
+  // constructs the speed, health, damage, and position (random) based on enemy type
   constructor(type) {
     this.type = type;
     this.x = Math.random();
@@ -21,6 +23,7 @@ class Enemy {
     }
   }
 
+  // function that draws the images for each enemy
   drawEnemy() {
     if(this.type == "normal") {
       return drawImg(enemy, 0, 0);
@@ -32,12 +35,15 @@ class Enemy {
   }
 }
 
+// constants variables (like the window size and different game mechanic thresholds)
 let cW, cH;
 let myFont;
-const duration = 5;
-const threshold = 30;
+const powerUpDuration = 5;
+const soulThreshold = 30;
+const levelDuration = 30;
 let timer = 0;
 
+// variables for the player features
 let charX = 0.5;
 let charY = 0.5;
 let health = 1;
@@ -47,11 +53,13 @@ let activated = false;
 let timeLeft = 0;
 let kills = 0;
 
+// variables for the axe
 let attached = true;
 let projX, projY;
 let projV = 0;
 let projR = 0;
 
+// instantiates all the enemies
 let enemies = [new Enemy("normal"), new Enemy("normal")];
 enemies[0].x = 0.25;
 enemies[0].y = 0.25;
@@ -59,6 +67,7 @@ enemies[1].x = 0.75;
 enemies[1].y = 0.75;
 let dying = false;
 
+// all of the below is preloading images or sounds
 let boom, whoosh, wasted;
 
 let stage = 0;
@@ -102,6 +111,7 @@ function setup() {
 
 function draw() {
   console.log(stage);
+  // stages (in order from 0 to 6): Level 1 prescreen, level 1, level 2 prescreen, level 2, game over, level 3 prescreen, level 3
   if (stage == 4) {
     background(space);
     drawImg(game_over, 0.5, 0.5);
@@ -112,14 +122,17 @@ function draw() {
     clear();
     background(back_ground);
 
+    // timer
     fill("white");
-    text((90 - Math.floor(timer)), 0.85 * cW, 0.9 * cH);
+    text((levelDuration - Math.floor(timer)), 0.85 * cW, 0.9 * cH);
 
+    // health and power boxes
     fill("white");
     drawRect(0.7, 0.1, 0.2, 0.05);
     drawRect(0.1, 0.1, 0.2, 0.05);
 
-    if (souls >= threshold) {
+    // determines if player is in power up
+    if (souls >= soulThreshold) {
       souls = 0;
       activated = true;
       timeLeft = 0.2;
@@ -127,9 +140,10 @@ function draw() {
       setTimeout(function() {
         activated = false;
         timeLeft = 0;
-      }, duration * 1000);
+      }, powerUpDuration * 1000);
     }
 
+    // determines if the player died
     if (health <= 0) {
       setTimeout(function() {
         wasted.play();
@@ -138,6 +152,7 @@ function draw() {
       stage = 4;
     }
 
+    // determines if player is losing health
     if (health < 0.2 || dying) {
       fill("red");
     } else {
@@ -145,13 +160,15 @@ function draw() {
     }
     drawRect(0.7, 0.1, 0.2 * health, 0.05);
 
+    // Draws power bar
     fill("#00008B");
     if (!activated) {
-      drawRect(0.1, 0.1, souls / (threshold / 0.2), 0.05);
+      drawRect(0.1, 0.1, souls / (soulThreshold / 0.2), 0.05);
     } else {
       drawRect(0.1, 0.1, timeLeft, 0.05);
     }
 
+    // draws character and points axe in the right direction
     let aim = createVector(mouseX - (charX * cW), mouseY - (charY * cH));
     push();
     translate(charX * cW, charY * cH);
@@ -163,6 +180,7 @@ function draw() {
     }
     pop();
 
+    // determines where axe is/updates position
     if (attached) {
       aim.setMag(0.06 * cW);
       projX = charX + (aim.x / cW);
@@ -176,17 +194,20 @@ function draw() {
       projR += 20;
     }
 
+    // connects axe to player when close enough
     if (intersects(projX * cW, projY * cH, 0.04 * cW, charX * cW, charY * cH, 0.05 * cW) && projV < 0) {
       attached = true;
       projR = 0;
     }
 
+    // draws axe
     push();
     translate((projX * cW), (projY * cH));
     rotate(projR);
     drawImg(axe, 0, 0);
     pop();
 
+    // moves the character in direction corresponding to arrow keys
     let charSpeed = activated ? 0.01 : 0.005;
     if (keyIsDown(87) && charY > 0.04) {
       charY -= charSpeed;
@@ -201,6 +222,7 @@ function draw() {
       charX += charSpeed;
     }
 
+    // updates enemies and determines if player is dying
     dying = false;
     for (let i = 0; i < enemies.length; i++) {
       let scalar;
@@ -209,6 +231,8 @@ function draw() {
       } else {
         scalar = 1;
       }
+      
+      // updates enemy position
       let attack = createVector(charX - enemies[i].x, charY - enemies[i].y);
       attack.setMag(enemies[i].speed * scalar);
       push();
@@ -223,8 +247,10 @@ function draw() {
       enemies[i].y = Math.max(0.04, enemies[i].y);
       enemies[i].y = Math.min(0.96, enemies[i].y);
 
+      // determines intersection between enemy and character
       if (intersects(enemies[i].x * cW, enemies[i].y * cH, 0.03 * cW, charX * cW, charY * cH, 0.03 * cW)) {
         if (activated) {
+          // kills the enemy
           enemies[i] = new Enemy(enemies[i].type);
           while (distance(charX, charY, enemies[i].x, enemies[i].y) < 0.3) {
             enemies[i] = new Enemy(enemies[i].type);
@@ -232,6 +258,7 @@ function draw() {
           souls++;
           totalSouls++;
         } else if (!dying) {
+          // takes away health
           health -= enemies[i].dmg;
           dying = true;
         }
@@ -239,6 +266,7 @@ function draw() {
       enemies[i].speed += 0.000005;
     }
 
+    // kills enemies by axe
     if (!attached) {
       for (let i = 0; i < enemies.length; i++) {
         if (intersects(enemies[i].x * cW, enemies[i].y * cH, 0.05 * cW, projX * cW, projY * cH, 0.03 * cW)) {
@@ -252,7 +280,8 @@ function draw() {
       }
     }
 
-    if (timer >= 90) {
+    // checks if level passed
+    if (timer >= levelDuration) {
       stage = 2;
       timer = 0;
     }
@@ -298,13 +327,13 @@ function draw() {
     background(lava);
 
     fill("white");
-    text((90 - Math.floor(timer)), 0.85 * cW, 0.9 * cH);
+    text((levelDuration - Math.floor(timer)), 0.85 * cW, 0.9 * cH);
 
     fill("white");
     drawRect(0.7, 0.1, 0.2, 0.05);
     drawRect(0.1, 0.1, 0.2, 0.05);
 
-    if (souls >= threshold) {
+    if (souls >= soulThreshold) {
       souls = 0;
       activated = true;
       timeLeft = 0.2;
@@ -312,7 +341,7 @@ function draw() {
       setTimeout(function() {
         activated = false;
         timeLeft = 0;
-      }, duration * 1000);
+      }, powerUpDuration * 1000);
     }
 
     if (health <= 0) {
@@ -332,7 +361,7 @@ function draw() {
 
     fill("#00008B");
     if (!activated) {
-      drawRect(0.1, 0.1, souls / (threshold / 0.2), 0.05);
+      drawRect(0.1, 0.1, souls / (soulThreshold / 0.2), 0.05);
     } else {
       drawRect(0.1, 0.1, timeLeft, 0.05);
     }
@@ -443,7 +472,7 @@ function draw() {
       enemies[i].speed += 0.000005;
     }
 
-    if (timer >= 90) {
+    if (timer >= levelDuration) {
       stage = 5;
       timer = 0;
     }
@@ -474,7 +503,7 @@ function draw() {
     drawRect(0.7, 0.1, 0.2, 0.05);
     drawRect(0.1, 0.1, 0.2, 0.05);
 
-    if (souls >= threshold) {
+    if (souls >= soulThreshold) {
       souls = 0;
       activated = true;
       timeLeft = 0.2;
@@ -482,7 +511,7 @@ function draw() {
       setTimeout(function() {
         activated = false;
         timeLeft = 0;
-      }, duration * 1000);
+      }, powerUpDuration * 1000);
     }
 
     if (health <= 0) {
@@ -502,7 +531,7 @@ function draw() {
 
     fill("#00008B");
     if (!activated) {
-      drawRect(0.1, 0.1, souls / (threshold / 0.2), 0.05);
+      drawRect(0.1, 0.1, souls / (soulThreshold / 0.2), 0.05);
     } else {
       drawRect(0.1, 0.1, timeLeft, 0.05);
     }
@@ -619,7 +648,7 @@ function draw() {
   }
 
   if (activated) {
-    timeLeft -= (0.2 / (frameRate() * duration));
+    timeLeft -= (0.2 / (frameRate() * powerUpDuration));
   }
 }
 
